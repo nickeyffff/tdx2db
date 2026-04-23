@@ -58,6 +58,7 @@ func main() {
 		dbURI      string
 		dayFileDir string
 		minline    string
+		tdxHome    string
 
 		// Convert
 		inputType  string
@@ -78,7 +79,7 @@ func main() {
 	var cronCmd = &cobra.Command{
 		Use:   "cron",
 		Short: "Cron for update data and calc factor",
-		Example: `  tdx2db cron --dburi 'clickhouse://localhost' --minline 1,5
+		Example: `  tdx2db cron --dburi 'clickhouse://localhost' --minline 1,5 --tdxhome ~/new_tdx
   tdx2db cron --dburi 'duckdb://./tdx.db'` + dbURIHelp,
 		RunE: func(c *cobra.Command, args []string) error {
 			if c.Flags().Changed("minline") {
@@ -87,7 +88,7 @@ func main() {
 					return fmt.Errorf("--minline 仅支持 '1'、'5'、'1,5', 传入: %s", minline)
 				}
 			}
-			return cmd.Cron(ctx, dbURI, minline)
+			return cmd.Cron(ctx, dbURI, minline, tdxHome)
 		},
 	}
 
@@ -131,6 +132,7 @@ func main() {
 	cronCmd.Flags().StringVar(&dbURI, "dburi", "", dbURIInfo)
 	cronCmd.MarkFlagRequired("dburi")
 	cronCmd.Flags().StringVar(&minline, "minline", "", minLineInfo)
+	cronCmd.Flags().StringVar(&tdxHome, "tdxhome", "", "通达信安装目录")
 
 	// Convert Flags
 	convertCmd.Flags().StringVarP(&inputType, "type", "t", "", "转换类型")

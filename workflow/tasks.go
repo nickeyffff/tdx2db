@@ -15,14 +15,15 @@ import (
 )
 
 var (
-	TaskUpdateDaily  *Task
-	TaskInitDaily    *Task
-	TaskUpdateGBBQ   *Task
-	TaskCalcBasic    *Task
-	TaskCalcFactor   *Task
-	TaskUpdate1Min   *Task
-	TaskUpdate5Min   *Task
+	TaskUpdateDaily    *Task
+	TaskInitDaily      *Task
+	TaskUpdateGBBQ     *Task
+	TaskCalcBasic      *Task
+	TaskCalcFactor     *Task
+	TaskUpdate1Min     *Task
+	TaskUpdate5Min     *Task
 	TaskUpdateHolidays *Task
+	TaskUpdateBlocks   *Task
 )
 
 func init() {
@@ -88,6 +89,16 @@ func init() {
 		SkipIf:    skipIfPlan(func(p *WorkPlan) bool { return !p.NeedHolidays }),
 		Executor:  executeUpdateHolidays,
 		OnError:   ErrorModeSkip,
+	}
+
+	TaskUpdateBlocks = &Task{
+		Name:      "update_blocks",
+		DependsOn: []string{},
+		SkipIf: func(ctx context.Context, db database.DataRepository, args *TaskArgs) bool {
+			return args.TdxHome == ""
+		},
+		Executor: executeUpdateBlocks,
+		OnError:  ErrorModeSkip,
 	}
 }
 
@@ -322,6 +333,36 @@ func executeUpdateHolidays(ctx context.Context, db database.DataRepository, args
 	return &TaskResult{State: StateCompleted, Message: "holidays data imported"}, nil
 }
 
+func executeUpdateBlocks(ctx context.Context, db database.DataRepository, args *TaskArgs) (*TaskResult, error) {
+	fmt.Printf("🐢 导入通达信概念行业等信息\n")
+	result, err := tdx.ExportTdxBlocksDataToCSV(args.TdxHome, args.TempDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "🚨 警告: %v\n", err)
+		return &TaskResult{State: StateFailed, Error: err, Message: "blocks import warning"}, nil
+	}
+
+	if result.BlockInfoFile != "" {
+		if err := db.ImportBlocksInfo(result.BlockInfoFile); err != nil {
+			return nil, fmt.Errorf("failed to import blocks info: %w", err)
+		}
+	}
+	if result.BlockMembersConceptFile != "" {
+		if err := db.TruncateTable(model.TableBlockMember); err != nil {
+			return nil, fmt.Errorf("failed to truncate blocks member: %w", err)
+		}
+		if err := db.ImportBlocksMember(result.BlockMembersConceptFile); err != nil {
+			return nil, fmt.Errorf("failed to import concept block members: %w", err)
+		}
+	}
+	if result.BlockMembersIndustryFile != "" {
+		if err := db.ImportBlocksMember(result.BlockMembersIndustryFile); err != nil {
+			return nil, fmt.Errorf("failed to import industry block members: %w", err)
+		}
+	}
+
+	return &TaskResult{State: StateCompleted, Message: "blocks data imported"}, nil
+}
+
 func getMinLineLatestDate(db database.DataRepository, minline string, args *TaskArgs) (time.Time, error) {
 	var tableName string
 	if minline == "1" {
@@ -480,6 +521,7 @@ func GetUpdateTaskNames() []string {
 		"update_1min",
 		"update_5min",
 		"update_holidays",
+		"update_blocks",
 	}
 }
 
@@ -493,6 +535,7 @@ func GetRegisteredTasks() map[string]*Task {
 		"update_1min":     TaskUpdate1Min,
 		"update_5min":     TaskUpdate5Min,
 		"update_holidays": TaskUpdateHolidays,
+		"update_blocks":   TaskUpdateBlocks,
 	}
 }
 
