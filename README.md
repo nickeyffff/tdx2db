@@ -4,9 +4,9 @@
 
 # tdx2db - 获得专属的 A 股行情数据库
 
-[![GitHub release](https://img.shields.io/github/v/release/jing2uo/tdx2db?style=flat-square)](https://github.com/jing2uo/tdx2db/releases)
-[![Docker Image](https://img.shields.io/badge/docker-pull-blue?style=flat-square&logo=docker)](https://github.com/jing2uo/tdx2db/pkgs/container/tdx2db)
-[![License](https://img.shields.io/github/license/jing2uo/tdx2db?style=flat-square)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/nickeyffff/tdx2db?style=flat-square)](https://github.com/nickeyffff/tdx2db/releases)
+[![Docker Image](https://img.shields.io/badge/docker-pull-blue?style=flat-square&logo=docker)](https://github.com/nickeyffff/tdx2db/pkgs/container/tdx2db)
+[![License](https://img.shields.io/github/license/nickeyffff/tdx2db?style=flat-square)](LICENSE)
 
 ## 概述
 
@@ -30,7 +30,7 @@
 
 ### 使用二进制
 
-从 [releases](https://github.com/jing2uo/tdx2db/releases) 下载对应平台的压缩包，解压后移至 `$PATH`：
+从 [releases](https://github.com/nickeyffff/tdx2db/releases) 下载对应平台的压缩包，解压后移至 `$PATH`：
 
 ```bash
 sudo mv tdx2db /usr/local/bin/ && tdx2db -h
@@ -43,7 +43,7 @@ sudo mv tdx2db /usr/local/bin/ && tdx2db -h
 项目会利用 github action 构建容器镜像，也可以通过 docker 使用:
 
 ```bash
-docker run --rm --platform=linux/amd64 ghcr.io/jing2uo/tdx2db:latest -h
+docker run --rm --platform=linux/amd64 ghcr.io/nickeyffff/tdx2db:latest -h
 ```
 
 ## 导入到数据库
@@ -86,12 +86,12 @@ docker:
 ```shell
 # linux、mac docker
 docker run --rm --platform=linux/amd64 -v "$(pwd)":/data \
-  ghcr.io/jing2uo/tdx2db:latest \
+  ghcr.io/nickeyffff/tdx2db:latest \
   init --dayfiledir /data/vipdoc --dburi 'duckdb:///data/tdx.db'
 
 # windows docker
 docker run --rm --platform=linux/amd64 -v "${PWD}:/data" \
-  ghcr.io/jing2uo/tdx2db:latest \
+  ghcr.io/nickeyffff/tdx2db:latest \
   init --dayfiledir /data/vipdoc --dburi 'duckdb:///data/tdx.db'
 
 # 后续不再提示 docker 用法, 根据二进制示例修改第三行命令即可
@@ -174,7 +174,7 @@ tdx2db convert -h   # 其他类型查看 help
 
 ## 致谢
 
-- Windows 和 macOS 下的日线合并由 [@Abelonx](https://github.com/Abelonx) 在 [#60](https://github.com/jing2uo/tdx2db/pull/60) 贡献的 native Go 实现支持，让 tdx2db 摆脱了对 Linux datatool 二进制的依赖。
+- Windows 和 macOS 下的日线合并由 [@Abelonx](https://github.com/Abelonx) 在 [#60](https://github.com/nickeyffff/tdx2db/pull/60) 贡献的 native Go 实现支持，让 tdx2db 摆脱了对 Linux datatool 二进制的依赖。
 
 
 ## 欢迎 issue 和 pr
