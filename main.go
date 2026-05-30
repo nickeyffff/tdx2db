@@ -98,9 +98,10 @@ func main() {
 	}
 
 	var (
-		dbURI      string
-		dayFileDir string
-		minEnable  bool
+		dbURI       string
+		dayFileDir  string
+		minEnable   bool
+		forceEnable bool
 	)
 
 	var initCmd = &cobra.Command{
@@ -119,7 +120,7 @@ func main() {
 		Example: `  tdx2db cron --dburi 'clickhouse://localhost' --min
   tdx2db cron --dburi 'duckdb://./tdx.db'` + dbURIHelp,
 		RunE: func(c *cobra.Command, args []string) error {
-			return cmd.Cron(ctx, dbURI, minEnable)
+			return cmd.Cron(ctx, dbURI, minEnable, forceEnable)
 		},
 	}
 
@@ -133,6 +134,7 @@ func main() {
 	cronCmd.Flags().StringVar(&dbURI, "dburi", "", dbURIInfo)
 	cronCmd.MarkFlagRequired("dburi")
 	cronCmd.Flags().BoolVar(&minEnable, "min", false, minInfo)
+	cronCmd.Flags().BoolVarP(&forceEnable, "force", "f", false, "强制运行全部任务，忽略休市和最新日期检查")
 
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(cronCmd)

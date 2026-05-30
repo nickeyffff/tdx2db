@@ -8,7 +8,7 @@ import (
 	"github.com/jing2uo/tdx2db/workflow"
 )
 
-func Cron(ctx context.Context, dbURI string, min bool) error {
+func Cron(ctx context.Context, dbURI string, min bool, force bool) error {
 	db, err := database.NewDB(dbURI)
 	if err != nil {
 		return fmt.Errorf("failed to create database driver: %w", err)
@@ -37,6 +37,14 @@ func Cron(ctx context.Context, dbURI string, min bool) error {
 	plan, err := workflow.BuildWorkPlan(db, today)
 	if err != nil {
 		return err
+	}
+	if force {
+		plan.NeedDaily = true
+		plan.NeedGbbq = true
+		plan.NeedBasic = true
+		plan.NeedFactor = true
+		plan.NeedHolidays = true
+		plan.Reason = "💪 启用 --force 参数，强制执行全部任务"
 	}
 	if plan.Reason != "" {
 		fmt.Println(plan.Reason)
