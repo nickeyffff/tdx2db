@@ -29,6 +29,8 @@ type DataRepository interface {
 	TruncateTable(meta *model.TableMeta) error
 	Query(table string, conditions map[string]interface{}, dest interface{}) error
 	QueryKlineDaily(symbol string, startDate, endDate *time.Time) ([]model.KlineDay, error)
+	QueryKline1Min(startDate, endDate time.Time) ([]model.KlineMin, error)
+	QueryUniqueDates(tableName string, dateCol string, since *time.Time) ([]time.Time, error)
 	GetLatestDate(tableName string, dateCol string) (time.Time, error)
 	GetMinDate(tableName string, dateCol string) (time.Time, error)
 	GetSymbolsByClass(classes ...string) ([]string, error)

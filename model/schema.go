@@ -9,7 +9,7 @@ const SchemaMajor = 5
 
 // SchemaMinor 表示数据库 schema 的次版本号。
 // 当发生非破坏性变更（新增表、新增字段等）时递增。
-const SchemaMinor = 0
+const SchemaMinor = 1
 
 type KlineDay struct {
 	Symbol string    `col:"symbol"`

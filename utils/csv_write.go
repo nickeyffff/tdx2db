@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -148,7 +149,15 @@ func (cw *CSVWriter[T]) Write(data []T) error {
 			// ------------------
 
 			// 其他类型通用处理
-			record[i] = fmt.Sprint(fieldVal.Interface())
+			valInterface := fieldVal.Interface()
+			switch fv := valInterface.(type) {
+			case float64:
+				record[i] = strconv.FormatFloat(fv, 'f', -1, 64)
+			case float32:
+				record[i] = strconv.FormatFloat(float64(fv), 'f', -1, 32)
+			default:
+				record[i] = fmt.Sprint(valInterface)
+			}
 		}
 
 		if err := cw.writer.Write(record); err != nil {

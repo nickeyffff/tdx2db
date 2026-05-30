@@ -146,3 +146,33 @@ func (d *ClickHouseDriver) GetHolidays() ([]time.Time, error) {
 	}
 	return dates, nil
 }
+
+func (d *ClickHouseDriver) QueryKline1Min(startDate, endDate time.Time) ([]model.KlineMin, error) {
+	query := fmt.Sprintf(
+		"SELECT * FROM %s WHERE datetime >= ? AND datetime <= ? ORDER BY symbol, datetime",
+		model.TableKline1Min.TableName,
+	)
+	var results []model.KlineMin
+	err := d.db.Select(&results, query, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("clickhouse query 1min failed: %w", err)
+	}
+	return results, nil
+}
+
+func (d *ClickHouseDriver) QueryUniqueDates(tableName string, dateCol string, since *time.Time) ([]time.Time, error) {
+	var query string
+	var args []interface{}
+	if since != nil {
+		query = fmt.Sprintf("SELECT DISTINCT toDate(%s) AS d FROM %s WHERE %s > ? ORDER BY d", dateCol, tableName, dateCol)
+		args = append(args, *since)
+	} else {
+		query = fmt.Sprintf("SELECT DISTINCT toDate(%s) AS d FROM %s ORDER BY d", dateCol, tableName)
+	}
+	var dates []time.Time
+	err := d.db.Select(&dates, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("clickhouse query unique dates failed: %w", err)
+	}
+	return dates, nil
+}

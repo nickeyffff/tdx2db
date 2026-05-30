@@ -254,7 +254,7 @@ func (te *TaskExecutor) findReadyTasks(pending map[string]bool, results map[stri
 				continue
 			}
 			result, exists := results[dep]
-			if !exists || (result.State != StateCompleted && result.State != StateSkipped) {
+			if !exists || (result.State != StateCompleted && result.State != StateSkipped && result.State != StateFailed) {
 				allDepsDone = false
 				break
 			}
