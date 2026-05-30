@@ -14,13 +14,17 @@ COMMIT        := $(shell git rev-parse HEAD 2>/dev/null || echo none)
 DATE          := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS       := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-.PHONY: all build check-unrar download extract move_datatool clean sudo-install user-install
+.PHONY: all build check-unrar download extract move_datatool clean clean-tmp sudo-install user-install docker
 
 all: build
 
 build: check-unrar download extract move_datatool clean-tmp
 	@echo "Building Go binary $(VERSION)..."
 	go build -ldflags="$(LDFLAGS)" -o $(BIN_NAME) .
+
+docker:
+	@echo "Building Docker image..."
+	docker build --platform linux/amd64 -f Containerfile -t tdx2db:latest .
 
 prepare: check-unrar download extract move_datatool
 	@echo "Prepare datatool..."

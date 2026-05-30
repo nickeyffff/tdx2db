@@ -6,6 +6,7 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/jing2uo/tdx2db?style=flat-square)](https://github.com/jing2uo/tdx2db/releases)
 [![License](https://img.shields.io/github/license/jing2uo/tdx2db?style=flat-square)](LICENSE)
+[![Docker Image](https://img.shields.io/badge/docker-pull-blue?style=flat-square&logo=docker)](https://github.com/jing2uo/tdx2db/pkgs/container/tdx2db)
 
 将通达信行情数据导入本地数据库，支持 DuckDB 和 ClickHouse。
 
@@ -36,6 +37,12 @@ TDP 付费订阅会确保数据与客户端向后兼容，并优先处理订阅�
 如果想支持一下这个项目，买份订阅就是最实在的鼓励啦。希望大家都能在大 A 赚到钱。
 
 ## 安装
+
+### Docker
+
+```bash
+docker run --rm --platform=linux/amd64 ghcr.io/jing2uo/tdx2db:latest -h
+```
 
 ### 二进制
 
@@ -75,6 +82,14 @@ tdx2db init --dburi 'duckdb://./tdx.db' --dayfiledir ./vipdoc
 # ClickHouse: clickhouse://[user[:password]@][host][:port][/database][?http_port=...]
 # 默认值: user=default, password="", port=9000, http_port=8123, database=default
 tdx2db init --dburi 'clickhouse://localhost' --dayfiledir ./vipdoc
+```
+
+Docker 用法（后续命令同理替换）：
+
+```shell
+docker run --rm --platform=linux/amd64 -v "$(pwd)":/data \
+  ghcr.io/jing2uo/tdx2db:latest \
+  init --dayfiledir /data/vipdoc --dburi 'duckdb:///data/tdx.db'
 ```
 
 ### 增量更新
