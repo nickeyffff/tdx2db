@@ -14,7 +14,15 @@ COMMIT        := $(shell git rev-parse HEAD 2>/dev/null || echo none)
 DATE          := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS       := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-.PHONY: all build check-unrar download extract move_datatool clean clean-tmp sudo-install user-install docker
+# Docker Registry Configuration
+# You can override these variables locally by creating a 'local.mk' file.
+-include local.mk
+
+REGISTRY      ?= ghcr.io
+NAMESPACE     ?= $(shell git config user.name 2>/dev/null || echo local)
+IMAGE_TAG     ?= latest
+
+.PHONY: all build check-unrar download extract move_datatool clean clean-tmp sudo-install user-install docker docker-push
 
 all: build
 
@@ -24,7 +32,13 @@ build: check-unrar download extract move_datatool clean-tmp
 
 docker:
 	@echo "Building Docker image..."
-	docker build --platform linux/amd64 -f Containerfile -t tdx2db:latest .
+	docker build --platform linux/amd64 -f Containerfile -t $(BIN_NAME):latest .
+
+docker-push: docker
+	@echo "Tagging image..."
+	docker tag $(BIN_NAME):latest $(REGISTRY)/$(NAMESPACE)/$(BIN_NAME):$(IMAGE_TAG)
+	@echo "Pushing image to $(REGISTRY)..."
+	docker push $(REGISTRY)/$(NAMESPACE)/$(BIN_NAME):$(IMAGE_TAG)
 
 prepare: check-unrar download extract move_datatool
 	@echo "Prepare datatool..."

@@ -2,3 +2,4 @@ tdx2db
 datatool
 datatool.exe
 .tmp
+local.mk
