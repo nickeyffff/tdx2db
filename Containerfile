@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=linux/amd64 golang:1.22-bookworm AS builder
+FROM --platform=linux/amd64 golang:1.25-bookworm AS builder
 
 # 启用 non-free 以便安装 unrar，并安装构建所需的工具
 RUN sed -i 's/Components: main/Components: main contrib non-free/g' /etc/apt/sources.list.d/debian.sources && \
