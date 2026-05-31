@@ -63,14 +63,17 @@ CREATE TABLE tongdaxin.cold_stocks_5min AS tdx.cold_stocks_5min;
 ALTER TABLE tongdaxin.cold_stocks_5min REPLACE PARTITION tuple() FROM tdx.cold_stocks_5min;
 ```
 
-### 3. 迁移复权因子表 `raw_adjust_factor`（约 2100 万行）
-```sql
--- 创建表结构
-CREATE TABLE tongdaxin.raw_adjust_factor AS tdx.raw_adjust_factor;
+### 3. 生成与重算复权因子表 `raw_adjust_factor`
+`raw_adjust_factor` 表**不需要从 tdx 库手动迁移**。
+该表是本项目的核心计算产物。只要您指向 `tongdaxin` 数据库运行一次 `tdx2db` 程序，工作流（Workflow）就会自动在 `tongdaxin` 库中创建此物理表并完成完整的因子计算和写入：
 
--- 导入数据
-INSERT INTO tongdaxin.raw_adjust_factor SELECT * FROM tdx.raw_adjust_factor;
+```shell
+# 运行增量与重算任务（程序会自动在 tongdaxin 库中创建并重算因子数据）
+tdx2db cron --dburi 'clickhouse://user:password@host:port/tongdaxin'
 ```
+> [!TIP]
+> 每次执行 `tdx2db cron` 时，程序内部的 `calc_factor` 任务都会执行 `TRUNCATE` 并重新计算写出该表，因此无需做跨库的数据备份或迁移。
+
 
 ---
 
