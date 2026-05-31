@@ -135,6 +135,16 @@ tdx2db cron --dburi 'duckdb://tdx.db' --min
 | `v_stock_{bfq,qfq,hfq}` | 股票 不复权 / 前复权 / 后复权日线 |
 | `v_etf_{bfq,qfq,hfq}`   | ETF 不复权 / 前复权 / 后复权日线  |
 
+### 5分钟线高频行情与字典复权
+
+对于 **5分钟高频行情数据**，为避免在数亿行高频数据上执行 `JOIN` 导致内存溢出 (OOM) 或性能低下，项目推荐并支持使用 ClickHouse **内存字典 (Dictionary)** 实现极速内存复权。
+
+关于物理表、本地字典以及 5 分钟复权视图的建表 SQL 与具体迁移步骤，请参考专属文档：[database_add.md](./database_add.md)。
+
+* **高频物理表**：`raw_stocks_5min` (日内高频)、`cold_stocks_5min` (历史冷数据)、`raw_adjust_factor` (复权因子)
+* **内存字典**：`dict_adjust_factor` (历史复权因子字典)、`dict_latest_factor` (当天最新因子字典)
+* **5分钟线复权视图**：`v_bfq_5min` (不复权)、`v_hfq_5min` (后复权)、`v_qfq_5min` (前复权)
+
 视图按 `v_<class>_<fq>` 命名，便于 tab-complete 按归属浏览。股票价格 ROUND 2 位、ETF ROUND 3 位。
 
 ```sql
