@@ -181,3 +181,10 @@ var TableSymbolName = SchemaFromStruct(
 	SymbolName{},
 	[]string{"symbol"},
 )
+
+var TableIndexConstituent = SchemaFromStruct(
+	"raw_index_constituent",
+	IndexConstituent{},
+	[]string{"index_name", "symbol"},
+)
+
