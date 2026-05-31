@@ -59,8 +59,8 @@ INSERT INTO tongdaxin.raw_stocks_5min SELECT * FROM tdx.raw_stocks_5min;
 -- 创建表结构
 CREATE TABLE tongdaxin.cold_stocks_5min AS tdx.cold_stocks_5min;
 
--- 使用空元组 () 作为分区表达式挂载数据（秒级瞬间完成，且不占双倍空间）
-ALTER TABLE tongdaxin.cold_stocks_5min ATTACH PARTITION () FROM tdx.cold_stocks_5min;
+-- 使用 REPLACE PARTITION tuple() 自动先清空目标表再挂载数据（秒级瞬间完成，且不占双倍空间）
+ALTER TABLE tongdaxin.cold_stocks_5min REPLACE PARTITION tuple() FROM tdx.cold_stocks_5min;
 ```
 
 ### 3. 迁移复权因子表 `raw_adjust_factor`（约 2100 万行）
