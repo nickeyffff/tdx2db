@@ -55,7 +55,7 @@ func executeUpdateIndexConstituent(ctx context.Context, db database.DataReposito
 		outputPath := filepath.Join(args.TempDir, idx.File)
 
 		fmt.Printf("📥 正在下载 %s 成分数据: %s\n", idx.Name, idx.File)
-		status, err := downloadFileDirect(ctx, url, outputPath)
+		status, err := downloadFileWithRetry(ctx, url, outputPath, 3)
 		if err != nil {
 			return nil, fmt.Errorf("failed to download index file %s (status %d): %w", idx.File, status, err)
 		}
@@ -105,14 +105,53 @@ func executeUpdateIndexConstituent(ctx context.Context, db database.DataReposito
 	return &TaskResult{State: StateCompleted, Rows: len(allConstituents), Message: msg}, nil
 }
 
+func downloadFileWithRetry(ctx context.Context, downloadURL, targetPath string, retries int) (int, error) {
+	var lastStatus int
+	var lastErr error
+
+	for attempt := 1; attempt <= retries; attempt++ {
+		if attempt > 1 {
+			fmt.Printf("⚠️ 下载失败，正在进行第 %d/%d 次重试...\n", attempt, retries)
+			timer := time.NewTimer(3 * time.Second)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return 0, ctx.Err()
+			case <-timer.C:
+			}
+		}
+
+		status, err := downloadFileDirect(ctx, downloadURL, targetPath)
+		if err == nil {
+			return status, nil
+		}
+		lastStatus = status
+		lastErr = err
+	}
+
+	return lastStatus, fmt.Errorf("failed after %d attempts: %w", retries, lastErr)
+}
+
 func downloadFileDirect(ctx context.Context, downloadURL, targetPath string) (int, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", downloadURL, nil)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create GET request: %w", err)
 	}
 
-	// Set browser-like headers
+	// Set browser-like headers (modern Chrome SEC headers)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Sec-Ch-Ua", `"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"`)
+	req.Header.Set("Sec-Ch-Ua-Mobile", "?0")
+	req.Header.Set("Sec-Ch-Ua-Platform", `"macOS"`)
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-User", "?1")
+
 	if u, err := url.Parse(downloadURL); err == nil && u.Scheme != "" && u.Host != "" {
 		req.Header.Set("Referer", u.Scheme+"://"+u.Host+"/")
 	}
