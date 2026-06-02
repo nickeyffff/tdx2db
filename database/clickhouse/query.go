@@ -164,7 +164,7 @@ func (d *ClickHouseDriver) QueryUniqueDates(tableName string, dateCol string, si
 	var query string
 	var args []interface{}
 	if since != nil {
-		query = fmt.Sprintf("SELECT DISTINCT toDate(%s) AS d FROM %s WHERE %s > ? ORDER BY d", dateCol, tableName, dateCol)
+		query = fmt.Sprintf("SELECT DISTINCT toDate(%s) AS d FROM %s WHERE toDate(%s) > ? ORDER BY d", dateCol, tableName, dateCol)
 		args = append(args, *since)
 	} else {
 		query = fmt.Sprintf("SELECT DISTINCT toDate(%s) AS d FROM %s ORDER BY d", dateCol, tableName)
