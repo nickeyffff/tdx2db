@@ -27,6 +27,7 @@ type DataRepository interface {
 	ImportSymbolNames(csvPath string) error
 
 	TruncateTable(meta *model.TableMeta) error
+	ClearDates(tableName string, dateCol string, dates []time.Time) error
 	Query(table string, conditions map[string]interface{}, dest interface{}) error
 	QueryKlineDaily(symbol string, startDate, endDate *time.Time) ([]model.KlineDay, error)
 	QueryKline1Min(startDate, endDate time.Time) ([]model.KlineMin, error)

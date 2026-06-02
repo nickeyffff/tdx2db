@@ -152,3 +152,21 @@ func (d *ClickHouseDriver) RebuildSymbolClass() error {
 	}
 	return nil
 }
+
+func (d *ClickHouseDriver) ClearDates(tableName string, dateCol string, dates []time.Time) error {
+	if len(dates) == 0 {
+		return nil
+	}
+	dateStrs := make([]string, len(dates))
+	for i, t := range dates {
+		dateStrs[i] = fmt.Sprintf("'%s'", t.Format("2006-01-02"))
+	}
+	query := fmt.Sprintf(
+		"DELETE FROM %s WHERE toDate(%s) IN (%s)",
+		tableName, dateCol, strings.Join(dateStrs, ", "),
+	)
+	if _, err := d.db.Exec(query); err != nil {
+		return fmt.Errorf("failed to clear ClickHouse dates in %s: %w", tableName, err)
+	}
+	return nil
+}

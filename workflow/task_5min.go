@@ -175,6 +175,9 @@ func executeUpdate5Min(ctx context.Context, db database.DataRepository, args *Ta
 	cw.Close()
 
 	if totalRows > 0 {
+		if err := db.ClearDates(model.TableKline5Min.TableName, "datetime", missingDates); err != nil {
+			return nil, fmt.Errorf("failed to pre-clear existing 5min data: %w", err)
+		}
 		fmt.Printf("📊 开始导入合成的5分钟K线数据至 raw_stocks_5min 表 (%d 条记录)\n", totalRows)
 		if err := db.ImportCSV(model.TableKline5Min, csvPath); err != nil {
 			return nil, fmt.Errorf("failed to import 5min csv into raw_stocks_5min: %w", err)

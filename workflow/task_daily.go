@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/jing2uo/tdx2db/database"
 	"github.com/jing2uo/tdx2db/model"
@@ -67,7 +68,7 @@ func executeUpdateDaily(ctx context.Context, db database.DataRepository, args *T
 		return nil, fmt.Errorf("failed to run DatatoolDayCreate: %w", err)
 	}
 
-	return executeDailyImport(ctx, db, args, args.VipdocDir)
+	return executeDailyImport(ctx, db, args, args.VipdocDir, validDates)
 }
 
 func executeInitDaily(ctx context.Context, db database.DataRepository, args *TaskArgs) (*TaskResult, error) {
@@ -76,10 +77,10 @@ func executeInitDaily(ctx context.Context, db database.DataRepository, args *Tas
 		return nil, err
 	}
 
-	return executeDailyImport(ctx, db, args, args.DayFileDir)
+	return executeDailyImport(ctx, db, args, args.DayFileDir, nil)
 }
 
-func executeDailyImport(ctx context.Context, db database.DataRepository, args *TaskArgs, sourceDir string) (*TaskResult, error) {
+func executeDailyImport(ctx context.Context, db database.DataRepository, args *TaskArgs, sourceDir string, cleanDates []time.Time) (*TaskResult, error) {
 	fmt.Println("🐌 开始转换日线数据")
 
 	stockDailyCSV := filepath.Join(args.TempDir, "stock.csv")
@@ -93,6 +94,12 @@ func executeDailyImport(ctx context.Context, db database.DataRepository, args *T
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
+	}
+
+	if len(cleanDates) > 0 {
+		if err := db.ClearDates(model.TableKlineDaily.TableName, "date", cleanDates); err != nil {
+			return nil, fmt.Errorf("failed to pre-clear existing daily data: %w", err)
+		}
 	}
 
 	if err := db.ImportKlineDaily(stockDailyCSV); err != nil {

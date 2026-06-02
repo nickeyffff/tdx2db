@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jing2uo/tdx2db/database"
+	"github.com/jing2uo/tdx2db/model"
 	"github.com/jing2uo/tdx2db/tdx"
 )
 
@@ -50,6 +51,9 @@ func executeUpdate1Min(ctx context.Context, db database.DataRepository, args *Ta
 		return nil, fmt.Errorf("failed to convert .01 files to csv: %w", err)
 	}
 
+	if err := db.ClearDates(model.TableKline1Min.TableName, "datetime", validDates); err != nil {
+		return nil, fmt.Errorf("failed to pre-clear existing 1min data: %w", err)
+	}
 	if err := db.ImportKline1Min(stock1MinCSV); err != nil {
 		return nil, fmt.Errorf("failed to import 1-minute line csv: %w", err)
 	}

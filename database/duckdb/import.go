@@ -3,6 +3,7 @@ package duckdb
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jing2uo/tdx2db/model"
 )
@@ -113,4 +114,22 @@ func (d *DuckDBDriver) RebuildSymbolClass() error {
 	}
 
 	return tx.Commit()
+}
+
+func (d *DuckDBDriver) ClearDates(tableName string, dateCol string, dates []time.Time) error {
+	if len(dates) == 0 {
+		return nil
+	}
+	dateStrs := make([]string, len(dates))
+	for i, t := range dates {
+		dateStrs[i] = fmt.Sprintf("'%s'", t.Format("2006-01-02"))
+	}
+	query := fmt.Sprintf(
+		"DELETE FROM %s WHERE CAST(%s AS DATE) IN (%s)",
+		tableName, dateCol, strings.Join(dateStrs, ", "),
+	)
+	if _, err := d.db.Exec(query); err != nil {
+		return fmt.Errorf("failed to clear DuckDB dates in %s: %w", tableName, err)
+	}
+	return nil
 }
