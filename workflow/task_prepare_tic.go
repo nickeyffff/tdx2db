@@ -24,7 +24,7 @@ func init() {
 		Name:      "prepare_tic",
 		DependsOn: []string{},
 		SkipIf: func(ctx context.Context, db database.DataRepository, args *TaskArgs) bool {
-			return !args.Min
+			return !args.Min || (args.Plan != nil && !args.Plan.Need1Min)
 		},
 		Executor: executePrepareTic,
 	}

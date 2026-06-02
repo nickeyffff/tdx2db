@@ -34,7 +34,7 @@ func Cron(ctx context.Context, dbURI string, min bool, force bool) error {
 
 	today := GetToday()
 
-	plan, err := workflow.BuildWorkPlan(db, today)
+	plan, err := workflow.BuildWorkPlan(db, today, min)
 	if err != nil {
 		return err
 	}
@@ -44,6 +44,8 @@ func Cron(ctx context.Context, dbURI string, min bool, force bool) error {
 		plan.NeedBasic = true
 		plan.NeedFactor = true
 		plan.NeedHolidays = true
+		plan.Need1Min = true
+		plan.Need5Min = true
 		plan.Reason = "💪 启用 --force 参数，强制执行全部任务"
 	}
 	if plan.Reason != "" {

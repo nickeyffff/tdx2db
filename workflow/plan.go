@@ -20,17 +20,19 @@ type WorkPlan struct {
 	NeedBasic    bool
 	NeedFactor   bool
 	NeedHolidays bool
+	Need1Min     bool
+	Need5Min     bool
 
 	Reason string // 用于日志
 }
 
 // AnyNeeded 是否有任何任务需要执行。
 func (p *WorkPlan) AnyNeeded() bool {
-	return p.NeedDaily || p.NeedGbbq || p.NeedBasic || p.NeedFactor || p.NeedHolidays
+	return p.NeedDaily || p.NeedGbbq || p.NeedBasic || p.NeedFactor || p.NeedHolidays || p.Need1Min || p.Need5Min
 }
 
 // BuildWorkPlan 读取交易日历与各表最新日期，推导本次 cron 要做什么。
-func BuildWorkPlan(db database.DataRepository, today time.Time) (*WorkPlan, error) {
+func BuildWorkPlan(db database.DataRepository, today time.Time, min bool) (*WorkPlan, error) {
 	holidays, err := db.GetHolidays()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load holidays: %w", err)
@@ -45,6 +47,8 @@ func BuildWorkPlan(db database.DataRepository, today time.Time) (*WorkPlan, erro
 		plan.NeedBasic = true
 		plan.NeedFactor = true
 		plan.NeedHolidays = true
+		plan.Need1Min = true
+		plan.Need5Min = true
 		plan.Reason = "🌱 raw_holidays 为空，走完整流程"
 		return plan, nil
 	}
@@ -65,6 +69,14 @@ func BuildWorkPlan(db database.DataRepository, today time.Time) (*WorkPlan, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest factor date: %w", err)
 	}
+	latest1Min, err := db.GetLatestDate(model.TableKline1Min.TableName, "datetime")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest 1min date: %w", err)
+	}
+	latest5Min, err := db.GetLatestDate(model.TableKline5Min.TableName, "datetime")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest 5min date: %w", err)
+	}
 
 	// 空库：交给 init 流程；此处不标任何 Need，调用方自行决定。
 	if dailyLatest.IsZero() {
@@ -81,6 +93,11 @@ func BuildWorkPlan(db database.DataRepository, today time.Time) (*WorkPlan, erro
 	// holidays 来自 gbbq.zip，与 gbbq 同频刷新即可。
 	plan.NeedHolidays = plan.NeedGbbq
 
+	if min {
+		plan.Need1Min = latest1Min.IsZero() || latest1Min.Before(plan.LastTradingDay)
+		plan.Need5Min = plan.Need1Min || latest5Min.IsZero() || latest5Min.Before(latest1Min)
+	}
+
 	plan.Reason = describePlan(plan, dailyLatest)
 	return plan, nil
 }
@@ -96,6 +113,10 @@ func describePlan(plan *WorkPlan, dailyLatest time.Time) string {
 
 	if plan.NeedBasic || plan.NeedFactor {
 		return fmt.Sprintf("📅 日线已是最新 (%s)，补算 basic/factor", dailyLatest.Format("2006-01-02"))
+	}
+
+	if plan.Need1Min || plan.Need5Min {
+		return fmt.Sprintf("📅 日线已是最新 (%s)，更新/合成分时数据", dailyLatest.Format("2006-01-02"))
 	}
 
 	switch {

@@ -19,7 +19,7 @@ func init() {
 		Name:      "update_5min",
 		DependsOn: []string{"update_1min"},
 		SkipIf: func(ctx context.Context, db database.DataRepository, args *TaskArgs) bool {
-			return !args.Min
+			return !args.Min || (args.Plan != nil && !args.Plan.Need5Min)
 		},
 		Executor: executeUpdate5Min,
 		OnError:  ErrorModeSkip,
