@@ -35,6 +35,16 @@ func NewClickHouseDriver(u *url.URL) (*ClickHouseDriver, error) {
 	}
 	q.Del("http_port")
 
+	// 默认启用压缩以提升大数据量传输性能并减少超时
+	if q.Get("compress") == "" {
+		q.Set("compress", "true")
+	}
+
+	// 默认读超时设置为 60s，防止 1min 级别数据拉取超时
+	if q.Get("read_timeout") == "" {
+		q.Set("read_timeout", "60s")
+	}
+
 	// 2. Host 必填
 	host := u.Hostname()
 	if host == "" {
