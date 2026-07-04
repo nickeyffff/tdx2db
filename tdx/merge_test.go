@@ -20,8 +20,8 @@ func TestParseIncrFilename(t *testing.T) {
 		{"bj260318.md1", "bj", 20260318, false},
 		{"sh990101.md1", "sh", 19990101, false},
 		{"sh250610.md1", "sh", 20250610, false},
-		{"ab.md1", "", 0, true},       // too short
-		{"sh13.md1", "", 0, true},     // too short date part
+		{"ab.md1", "", 0, true},   // too short
+		{"sh13.md1", "", 0, true}, // too short date part
 	}
 
 	for _, tt := range tests {
@@ -51,7 +51,7 @@ func TestMakeDayRecord(t *testing.T) {
 		Volume: 3555100,
 	}
 
-	buf := makeDayRecord(20260318, rec)
+	buf := makeDayRecord(20260318, rec, 100)
 
 	if len(buf) != recordSize {
 		t.Fatalf("expected %d bytes, got %d", recordSize, len(buf))
@@ -97,10 +97,16 @@ func TestMakeDayRecord(t *testing.T) {
 		t.Errorf("amount = %f, want ~5239992522", amt)
 	}
 
-	// Verify reserved is zero
+	// Verify generated records keep the conventional reserved value.
+	// The reader ignores this field when parsing volume.
 	reserved := binary.LittleEndian.Uint32(buf[28:32])
-	if reserved != 0 {
-		t.Errorf("reserved = %d, want 0", reserved)
+	if reserved != 0x10000 {
+		t.Errorf("reserved = %#x, want 0x10000", reserved)
+	}
+
+	// End-to-end: makeDayRecord volume should round-trip unchanged.
+	if gotVol := parseDayVolume(volRaw, reserved); gotVol != int64(rec.Volume) {
+		t.Errorf("parseDayVolume round-trip = %d, want %d", gotVol, rec.Volume)
 	}
 }
 
@@ -109,7 +115,7 @@ func TestAppendDayRecordDedup(t *testing.T) {
 	dayFile := filepath.Join(tmpDir, "test.day")
 
 	rec := md1OHLCV{Open: 10, High: 11, Low: 9, Close: 10.5, Amount: 1000, Volume: 100}
-	buf := makeDayRecord(20260318, rec)
+	buf := makeDayRecord(20260318, rec, 100)
 
 	// First write
 	if err := appendDayRecord(dayFile, 20260318, buf); err != nil {
@@ -132,7 +138,7 @@ func TestAppendDayRecordDedup(t *testing.T) {
 	}
 
 	// Older date — should also be skipped
-	oldBuf := makeDayRecord(20260317, rec)
+	oldBuf := makeDayRecord(20260317, rec, 100)
 	if err := appendDayRecord(dayFile, 20260317, oldBuf); err != nil {
 		t.Fatalf("old date append: %v", err)
 	}
@@ -143,7 +149,7 @@ func TestAppendDayRecordDedup(t *testing.T) {
 	}
 
 	// Newer date — should be appended
-	newBuf := makeDayRecord(20260319, rec)
+	newBuf := makeDayRecord(20260319, rec, 100)
 	if err := appendDayRecord(dayFile, 20260319, newBuf); err != nil {
 		t.Fatalf("new date append: %v", err)
 	}

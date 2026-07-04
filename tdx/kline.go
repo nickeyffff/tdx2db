@@ -19,7 +19,6 @@ const (
 	recordSize = 32
 )
 
-// ConvertFilesToCSV 转换 TDX 文件到 CSV
 func ConvertFilesToCSV(ctx context.Context, inputDir string, outputFile string, suffix string) (string, error) {
 	switch suffix {
 	case ".day":
@@ -128,7 +127,7 @@ func processDayFile(data []byte, symbol string) ([]model.KlineDay, error) {
 
 		volRaw := binary.LittleEndian.Uint32(data[offset+24 : offset+28])
 		reserved := binary.LittleEndian.Uint32(data[offset+28 : offset+32])
-		volume := parseVolumeOverflow(volRaw, reserved)
+		volume := parseDayVolume(volRaw, reserved)
 
 		t, err := parseDate(dateRaw)
 		if err != nil {
@@ -203,16 +202,11 @@ func parseDate(d uint32) (time.Time, error) {
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local), nil
 }
 
-// parseVolumeOverflow 处理成交量溢出
-// TDX day 文件中 volume 字段是 uint32，最大约 42.9 亿
-// 当成交量超过此限制时，使用特殊编码:
-//   - reserved (bytes 28-31) 正常值为 0x10000
-//   - 溢出时: volume = volume_raw * 100 + (reserved & 0xFF)
-func parseVolumeOverflow(volRaw, reserved uint32) int64 {
-	if reserved == 0x10000 {
-		return int64(volRaw) // 正常情况
+func parseDayVolume(volRaw, reserved uint32) int64 {
+	if reserved&0xffffff00 == 0xc3640000 {
+		return int64(volRaw)*100 + int64(reserved&0xff)
 	}
-	return int64(volRaw)*100 + int64(reserved&0xFF)
+	return int64(volRaw)
 }
 
 func parseDateTime(dateRaw, timeRaw uint16) (time.Time, error) {
@@ -228,7 +222,6 @@ func parseDateTime(dateRaw, timeRaw uint16) (time.Time, error) {
 	return time.Date(year, time.Month(month), day, hour, minute, 0, 0, time.Local), nil
 }
 
-// symbolPattern 合法 symbol 格式: 市场前缀 + 纯数字 (sh600000 / sz000001 / bj830000)
 var symbolPattern = regexp.MustCompile(`^(sh|sz|bj)\d+$`)
 
 func collectFiles(root string, suffix string) ([]string, error) {
