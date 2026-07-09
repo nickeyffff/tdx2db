@@ -138,37 +138,52 @@ SELECT symbol, toDateTime64(concat(toString(datetime), ''), 0, 'Asia/Shanghai') 
 FROM tongdaxin.cold_stocks_5min;
 ```
 
-### 2. 创建后复权视图 `v_hfq_5min`
+### 2. 创建后复权视图 `v_hfq_5min` (高效率 LEFT JOIN + 精度自适应)
+
 ```sql
 CREATE OR REPLACE VIEW tongdaxin.v_hfq_5min AS 
 SELECT 
-    symbol, 
-    datetime, 
-    round(open * dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))), 2) AS open, 
-    round(high * dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))), 2) AS high, 
-    round(low * dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))), 2) AS low, 
-    round(close * dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))), 2) AS close, 
-    volume, 
-    amount, 
-    dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))) AS hfq_factor 
-FROM tongdaxin.v_bfq_5min;
+    s.symbol AS symbol, 
+    s.datetime AS datetime, 
+    round(s.open * if(f.hfq_factor > 0, f.hfq_factor, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS open, 
+    round(s.high * if(f.hfq_factor > 0, f.hfq_factor, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS high, 
+    round(s.low * if(f.hfq_factor > 0, f.hfq_factor, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS low, 
+    round(s.close * if(f.hfq_factor > 0, f.hfq_factor, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS close, 
+    s.volume AS volume, 
+    s.amount AS amount, 
+    if(f.hfq_factor > 0, f.hfq_factor, 1.) AS hfq_factor 
+FROM tongdaxin.v_bfq_5min AS s
+LEFT JOIN tongdaxin.raw_adjust_factor AS f ON (s.symbol = f.symbol) AND (toDate(s.datetime) = f.date)
+LEFT JOIN tongdaxin.raw_symbol_class AS sc ON s.symbol = sc.symbol;
 ```
 
-### 3. 创建前复权视图 `v_qfq_5min`
+### 3. 创建前复权视图 `v_qfq_5min` (高效率 LEFT JOIN + 精度自适应)
+
 ```sql
 CREATE OR REPLACE VIEW tongdaxin.v_qfq_5min AS 
+WITH latest_factors AS
+    (
+        SELECT
+            symbol,
+            argMax(hfq_factor, date) AS latest_hfq
+        FROM tongdaxin.raw_adjust_factor
+        GROUP BY symbol
+    )
 SELECT 
-    symbol, 
-    datetime, 
-    round(open * (dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))) / dictGet('tongdaxin.dict_latest_factor', 'latest_factor', symbol)), 2) AS open, 
-    round(high * (dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))) / dictGet('tongdaxin.dict_latest_factor', 'latest_factor', symbol)), 2) AS high, 
-    round(low * (dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))) / dictGet('tongdaxin.dict_latest_factor', 'latest_factor', symbol)), 2) AS low, 
-    round(close * (dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))) / dictGet('tongdaxin.dict_latest_factor', 'latest_factor', symbol)), 2) AS close, 
-    volume, 
-    amount, 
-    CAST(dictGet('tongdaxin.dict_adjust_factor', 'hfq_factor', (symbol, toDate(datetime))), 'Float64') AS current_factor, 
-    CAST(dictGet('tongdaxin.dict_latest_factor', 'latest_factor', symbol), 'Float64') AS latest_factor 
-FROM tongdaxin.v_bfq_5min;
+    s.symbol AS symbol, 
+    s.datetime AS datetime, 
+    round((s.open * if(f.hfq_factor > 0, f.hfq_factor, 1.)) / if(lf.latest_hfq > 0, lf.latest_hfq, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS open, 
+    round((s.high * if(f.hfq_factor > 0, f.hfq_factor, 1.)) / if(lf.latest_hfq > 0, lf.latest_hfq, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS high, 
+    round((s.low * if(f.hfq_factor > 0, f.hfq_factor, 1.)) / if(lf.latest_hfq > 0, lf.latest_hfq, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS low, 
+    round((s.close * if(f.hfq_factor > 0, f.hfq_factor, 1.)) / if(lf.latest_hfq > 0, lf.latest_hfq, 1.), multiIf(sc.class IN ('etf', 'bstock'), 3, 2)) AS close, 
+    s.volume AS volume, 
+    s.amount AS amount, 
+    CAST(if(f.hfq_factor > 0, f.hfq_factor, 1.), 'Float64') AS current_factor, 
+    CAST(if(lf.latest_hfq > 0, lf.latest_hfq, 1.), 'Float64') AS latest_factor 
+FROM tongdaxin.v_bfq_5min AS s
+LEFT JOIN tongdaxin.raw_adjust_factor AS f ON (s.symbol = f.symbol) AND (toDate(s.datetime) = f.date)
+LEFT JOIN latest_factors AS lf ON s.symbol = lf.symbol
+LEFT JOIN tongdaxin.raw_symbol_class AS sc ON s.symbol = sc.symbol;
 ```
 
 ---
