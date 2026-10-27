@@ -134,8 +134,9 @@ jobs:
             --generate-notes \
             ${{ steps.prerel.outputs.flag }}
 
+  # 镜像由 Containerfile 自行从源码编译（COPY . . + make build），不依赖 build 矩阵产出的
+  # 二进制包，因此显式不声明 needs：与 build 并行启动，不再被 macOS runner 长时间排队拖住。
   docker:
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
