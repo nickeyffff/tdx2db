@@ -5,21 +5,23 @@ import "time"
 // SchemaMajor 表示数据库 schema 的主版本号。
 // 当发生破坏性变更（表重命名、字段语义变化等）时递增。
 // 已安装的数据库 major 版本与当前代码不匹配时，工具将拒绝操作并提示用户查看文档。
-const SchemaMajor = 5
+const SchemaMajor = 6
 
 // SchemaMinor 表示数据库 schema 的次版本号。
 // 当发生非破坏性变更（新增表、新增字段等）时递增。
 const SchemaMinor = 2
 
 type KlineDay struct {
-	Symbol string    `col:"symbol"`
-	Open   float64   `col:"open"`
-	High   float64   `col:"high"`
-	Low    float64   `col:"low"`
-	Close  float64   `col:"close"`
-	Amount float64   `col:"amount"`
-	Volume int64     `col:"volume"`
-	Date   time.Time `col:"date" type:"date"`
+	Symbol    string    `col:"symbol"`
+	Open      float64   `col:"open"`
+	High      float64   `col:"high"`
+	Low       float64   `col:"low"`
+	Close     float64   `col:"close"`
+	Amount    float64   `col:"amount"`
+	Volume    int64     `col:"volume"`
+	UpCount   int64     `col:"up_count"`
+	DownCount int64     `col:"down_count"`
+	Date      time.Time `col:"date" type:"date"`
 }
 
 type KlineMin struct {

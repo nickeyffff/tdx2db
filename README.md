@@ -122,8 +122,8 @@ tdx2db cron --dburi 'duckdb://tdx.db' --min
 
 | 表 / 视图               | 说明                              |
 | :---------------------- | :-------------------------------- |
-| `_meta`                 | schema 版本等元信息 (当前 v5.0)   |
-| `raw_kline_daily`       | 日线 (股票 / 指数 / ETF / 板块)   |
+| `_meta`                 | schema 版本等元信息 (当前 v6.0)   |
+| `raw_kline_daily`       | 日线；指数/板块含涨跌家数         |
 | `raw_kline_1min`        | 1 分钟 K 线                       |
 | `raw_basic_daily`       | 股票 / ETF 前收盘价、换手率与市值 |
 | `raw_adjust_factor`     | 后复权因子                        |

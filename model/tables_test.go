@@ -18,3 +18,17 @@ func TestSchemaFromStructNullableTag(t *testing.T) {
 		t.Fatalf("expected nullable column")
 	}
 }
+
+func TestKlineDailyIncludesBreadthColumns(t *testing.T) {
+	want := map[string]bool{"up_count": false, "down_count": false}
+	for _, col := range TableKlineDaily.Columns {
+		if _, ok := want[col.Name]; ok {
+			want[col.Name] = true
+		}
+	}
+	for name, found := range want {
+		if !found {
+			t.Errorf("raw_kline_daily missing %s column", name)
+		}
+	}
+}

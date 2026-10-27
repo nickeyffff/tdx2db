@@ -111,6 +111,7 @@ func processDayFile(data []byte, symbol string) ([]model.KlineDay, error) {
 	count := n / recordSize
 	rows := make([]model.KlineDay, 0, count)
 	scale := model.PriceScale(symbol)
+	indexMode := isIndexMode(symbol)
 
 	var offset int
 	for i := 0; i < count; i++ {
@@ -127,7 +128,13 @@ func processDayFile(data []byte, symbol string) ([]model.KlineDay, error) {
 
 		volRaw := binary.LittleEndian.Uint32(data[offset+24 : offset+28])
 		reserved := binary.LittleEndian.Uint32(data[offset+28 : offset+32])
-		volume := parseDayVolume(volRaw, reserved)
+		volume := int64(volRaw)
+		var upCount, downCount int64
+		if indexMode {
+			upCount, downCount = parseDayBreadth(reserved)
+		} else {
+			volume = parseDayVolume(volRaw, reserved)
+		}
 
 		t, err := parseDate(dateRaw)
 		if err != nil {
@@ -135,14 +142,16 @@ func processDayFile(data []byte, symbol string) ([]model.KlineDay, error) {
 		}
 
 		rows = append(rows, model.KlineDay{
-			Symbol: symbol,
-			Open:   float64(openRaw) / scale,
-			High:   float64(highRaw) / scale,
-			Low:    float64(lowRaw) / scale,
-			Close:  float64(closeRaw) / scale,
-			Amount: float64(amount),
-			Volume: volume,
-			Date:   t,
+			Symbol:    symbol,
+			Open:      float64(openRaw) / scale,
+			High:      float64(highRaw) / scale,
+			Low:       float64(lowRaw) / scale,
+			Close:     float64(closeRaw) / scale,
+			Amount:    float64(amount),
+			Volume:    volume,
+			UpCount:   upCount,
+			DownCount: downCount,
+			Date:      t,
 		})
 	}
 	return rows, nil
@@ -207,6 +216,15 @@ func parseDayVolume(volRaw, reserved uint32) int64 {
 		return int64(volRaw)*100 + int64(reserved&0xff)
 	}
 	return int64(volRaw)
+}
+
+func parseDayBreadth(reserved uint32) (upCount, downCount int64) {
+	return int64(reserved & 0xffff), int64(reserved >> 16)
+}
+
+func isIndexMode(symbol string) bool {
+	class := model.ClassifyCode(symbol)
+	return class == model.ClassIndex || class == model.ClassBlock
 }
 
 func parseDateTime(dateRaw, timeRaw uint16) (time.Time, error) {

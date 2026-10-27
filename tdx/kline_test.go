@@ -55,6 +55,9 @@ func TestProcessDayFileIgnoresReservedForVolume(t *testing.T) {
 	if rows[0].Close != 27.75 {
 		t.Errorf("close = %f, want 27.75", rows[0].Close)
 	}
+	if rows[0].UpCount != 0 || rows[0].DownCount != 0 {
+		t.Errorf("breadth = (%d, %d), want (0, 0)", rows[0].UpCount, rows[0].DownCount)
+	}
 }
 
 func TestProcessDayFileScalesC364VolumeMarker(t *testing.T) {
@@ -80,5 +83,48 @@ func TestProcessDayFileScalesC364VolumeMarker(t *testing.T) {
 	}
 	if rows[0].Close != 3.8 {
 		t.Errorf("close = %f, want 3.8", rows[0].Close)
+	}
+}
+
+func TestProcessDayFileParsesIndexBreadth(t *testing.T) {
+	data := make([]byte, recordSize)
+	binary.LittleEndian.PutUint32(data[0:4], 20260618)
+	binary.LittleEndian.PutUint32(data[4:8], 292649)
+	binary.LittleEndian.PutUint32(data[8:12], 293535)
+	binary.LittleEndian.PutUint32(data[12:16], 291939)
+	binary.LittleEndian.PutUint32(data[16:20], 292875)
+	binary.LittleEndian.PutUint32(data[24:28], 123_456)
+	binary.LittleEndian.PutUint32(data[28:32], 0x0026000c)
+
+	rows, err := processDayFile(data, "sh000016")
+	if err != nil {
+		t.Fatalf("processDayFile: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("len(rows) = %d, want 1", len(rows))
+	}
+	if rows[0].Volume != 123_456 {
+		t.Errorf("volume = %d, want 123456", rows[0].Volume)
+	}
+	if rows[0].UpCount != 12 || rows[0].DownCount != 38 {
+		t.Errorf("breadth = (%d, %d), want (12, 38)", rows[0].UpCount, rows[0].DownCount)
+	}
+}
+
+func TestProcessDayFileParsesBlockBreadth(t *testing.T) {
+	data := make([]byte, recordSize)
+	binary.LittleEndian.PutUint32(data[0:4], 20260618)
+	binary.LittleEndian.PutUint32(data[24:28], 123_456)
+	binary.LittleEndian.PutUint32(data[28:32], 0x003b0024)
+
+	rows, err := processDayFile(data, "sh881044")
+	if err != nil {
+		t.Fatalf("processDayFile: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("len(rows) = %d, want 1", len(rows))
+	}
+	if rows[0].UpCount != 36 || rows[0].DownCount != 59 {
+		t.Errorf("breadth = (%d, %d), want (36, 59)", rows[0].UpCount, rows[0].DownCount)
 	}
 }
